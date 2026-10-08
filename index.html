@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PAMMY'S FOOD RECIPE SOLVER</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800 pb-20 font-sans">
+
+  <!-- Header -->
+  <header class="bg-amber-500 text-white p-4 sticky top-0 z-50 shadow-md">
+    <div class="max-w-xl mx-auto flex justify-between items-center">
+      <div class="flex items-center space-x-2">
+        <i class="fa-solid fa-utensils text-2xl"></i>
+        <div>
+          <h1 class="font-bold text-lg leading-tight">PAMMY'S RECIPE SOLVER</h1>
+          <p class="text-xs text-amber-100">Cook with what you have</p>
+        </div>
+      </div>
+      <button onclick="openSettings()" class="bg-amber-600 hover:bg-amber-700 text-white p-2 rounded-full transition">
+        <i class="fa-solid fa-gear"></i>
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-xl mx-auto p-4 space-y-5">
+
+    <!-- Dietary Filter -->
+    <div class="bg-white rounded-xl p-3 shadow-sm border border-gray-100 flex justify-between items-center">
+      <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Diet Mode</span>
+      <div class="flex bg-gray-100 p-1 rounded-lg space-x-1">
+        <button onclick="setDiet('veg')" id="diet-veg" class="px-3 py-1 text-xs font-semibold rounded-md bg-green-600 text-white shadow-sm">Pure Veg</button>
+        <button onclick="setDiet('eggetarian')" id="diet-eggetarian" class="px-3 py-1 text-xs font-semibold rounded-md text-gray-600">Eggetarian</button>
+        <button onclick="setDiet('jain')" id="diet-jain" class="px-3 py-1 text-xs font-semibold rounded-md text-gray-600">Jain</button>
+      </div>
+    </div>
+
+    <!-- Quick Search & Voice -->
+    <div class="relative">
+      <input type="text" id="quick-input" onkeyup="filterIngredients()" placeholder="Quick search or type items (e.g., egg, milk, paneer)..." 
+        class="w-full pl-10 pr-10 py-3 rounded-xl border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm">
+      <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-gray-400"></i>
+      <button onclick="startVoice()" class="absolute right-3 top-2.5 text-amber-600 p-1">
+        <i class="fa-solid fa-microphone text-lg"></i>
+      </button>
+    </div>
+
+    <!-- Chef Mode Situation Controls -->
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
+      <h2 class="text-xs font-bold text-amber-800 uppercase tracking-wide flex items-center">
+        <i class="fa-solid fa-sliders mr-2"></i> Chef Mode - Situation Filters
+      </h2>
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <div>
+          <label class="block font-semibold text-gray-600 mb-1">Meal Type</label>
+          <select id="meal-type" class="w-full bg-white border border-amber-200 rounded-lg p-2">
+            <option>Dinner</option>
+            <option>Lunch</option>
+            <option>Breakfast</option>
+            <option>Quick Snack</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-semibold text-gray-600 mb-1">Time Limit</label>
+          <select id="time-limit" class="w-full bg-white border border-amber-200 rounded-lg p-2">
+            <option>< 15 mins</option>
+            <option>< 30 mins</option>
+            <option>Any Time</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-semibold text-gray-600 mb-1">Eater</label>
+          <select id="portion" class="w-full bg-white border border-amber-200 rounded-lg p-2">
+            <option>Solo student portion</option>
+            <option>2 People</option>
+            <option>Family (4+)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-semibold text-gray-600 mb-1">Vibe/Goal</label>
+          <select id="vibe" class="w-full bg-white border border-amber-200 rounded-lg p-2">
+            <option>Budget student meal</option>
+            <option>Healthy & High Protein</option>
+            <option>Comfort Food</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sticky Category Filter Chips -->
+    <div class="flex space-x-2 overflow-x-auto no-scrollbar py-1">
+      <button onclick="filterCategory('all')" class="cat-chip px-4 py-1.5 rounded-full text-xs font-semibold bg-amber-500 text-white whitespace-nowrap shadow-sm">All</button>
+      <button onclick="filterCategory('veg')" class="cat-chip px-4 py-1.5 rounded-full text-xs font-semibold bg-white border text-gray-600 whitespace-nowrap">Vegetables</button>
+      <button onclick="filterCategory('dairy')" class="cat-chip px-4 py-1.5 rounded-full text-xs font-semibold bg-white border text-gray-600 whitespace-nowrap">Dairy & Eggs</button>
+      <button onclick="filterCategory('fruits')" class="cat-chip px-4 py-1.5 rounded-full text-xs font-semibold bg-white border text-gray-600 whitespace-nowrap">Fruits</button>
+      <button onclick="filterCategory('grains')" class="cat-chip px-4 py-1.5 rounded-full text-xs font-semibold bg-white border text-gray-600 whitespace-nowrap">Grains & Dals</button>
+      <button onclick="filterCategory('spices')" class="cat-chip px-4 py-1.5 rounded-full text-xs font-semibold bg-white border text-gray-600 whitespace-nowrap">Spices & Oils</button>
+    </div>
+
+    <!-- Kitchen Stock Status Bar -->
+    <div class="flex justify-between items-center px-1">
+      <span id="active-count" class="text-xs font-bold text-gray-500">0 items in your kitchen</span>
+      <button onclick="resetKitchen()" class="text-xs text-red-500 font-semibold hover:underline">Reset All</button>
+    </div>
+
+    <!-- Ingredients Grid -->
+    <div id="ingredients-grid" class="grid grid-cols-2 gap-3"></div>
+
+  </main>
+
+  <!-- Sticky Bottom AI Solver CTA -->
+  <div class="fixed bottom-0 left-0 right-0 bg-white border-t p-3 shadow-lg z-40">
+    <div class="max-w-xl mx-auto">
+      <button onclick="generateRecipes()" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-4 rounded-xl shadow-md flex items-center justify-center space-x-2">
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+        <span>Solve Recipes with Selected Ingredients</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Settings Modal (API Key) -->
+  <div id="settings-modal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-5 max-w-md w-full space-y-4">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-gray-800">App Settings</h3>
+        <button onclick="closeSettings()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-gray-600 mb-1">Google AI Studio API Key</label>
+        <input type="password" id="api-key-input" placeholder="Paste your free key here..." class="w-full border p-2 rounded-lg text-xs">
+        <p class="text-[10px] text-gray-400 mt-1">Get key at <a href="https://aistudio.google.com" target="_blank" class="text-amber-600 underline">aistudio.google.com</a>. Saved only in your device local storage.</p>
+      </div>
+      <button onclick="saveSettings()" class="w-full bg-amber-500 text-white font-bold py-2 rounded-xl text-sm">Save Settings</button>
+    </div>
+  </div>
+
+  <!-- Results Modal -->
+  <div id="results-modal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white rounded-t-2xl sm:rounded-2xl max-w-xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="p-4 bg-amber-500 text-white flex justify-between items-center">
+        <h3 class="font-bold">Suggested Recipes</h3>
+        <button onclick="closeResults()" class="text-white hover:opacity-80"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <div id="results-content" class="p-4 overflow-y-auto space-y-4 text-sm"></div>
+    </div>
+  </div>
+
+  <script>
+    // Full Ingredient Dataset
+    const ingredientsData = [
+      // Dairy & Eggs
+      { id: 'egg', name: 'Whole Eggs (Anda)', cat: 'dairy', isEgg: true, unit: 'pcs', step: 1 },
+      { id: 'egg_white', name: 'Egg Whites (Safedi)', cat: 'dairy', isEgg: true, unit: 'ml', step: 100 },
+      { id: 'doodh', name: 'Doodh (Milk)', cat: 'dairy', isEgg: false, unit: 'ml', step: 250 },
+      { id: 'paneer', name: 'Paneer', cat: 'dairy', isEgg: false, unit: 'g', step: 100 },
+      { id: 'dahi', name: 'Dahi (Curd)', cat: 'dairy', isEgg: false, unit: 'g', step: 100 },
+      { id: 'butter', name: 'Butter', cat: 'dairy', isEgg: false, unit: 'g', step: 50 },
+      { id: 'ghee', name: 'Ghee', cat: 'dairy', isEgg: false, unit: 'g', step: 50 },
+      { id: 'chaas', name: 'Chaas (Buttermilk)', cat: 'dairy', isEgg: false, unit: 'ml', step: 250 },
+      { id: 'cheese', name: 'Cheese Slices', cat: 'dairy', isEgg: false, unit: 'pcs', step: 1 },
+
+      // Vegetables
+      { id: 'aloo', name: 'Aloo (Potato)', cat: 'veg', isEgg: false, isRoot: true, unit: 'g', step: 250 },
+      { id: 'pyaz', name: 'Pyaz (Onion)', cat: 'veg', isEgg: false, isRoot: true, unit: 'g', step: 250 },
+      { id: 'tamatar', name: 'Tamatar (Tomato)', cat: 'veg', isEgg: false, isRoot: false, unit: 'g', step: 250 },
+      { id: 'lasan', name: 'Lasan (Garlic)', cat: 'veg', isEgg: false, isRoot: true, unit: 'g', step: 50 },
+      { id: 'adrak', name: 'Adrak (Ginger)', cat: 'veg', isEgg: false, isRoot: true, unit: 'g', step: 50 },
+      { id: 'hari_mirch', name: 'Hari Mirch (Green Chilli)', cat: 'veg', isEgg: false, isRoot: false, unit: 'g', step: 50 },
+      { id: 'palak', name: 'Palak (Spinach)', cat: 'veg', isEgg: false, isRoot: false, unit: 'g', step: 200 },
+      { id: 'gobhi', name: 'Phool Gobhi (Cauliflower)', cat: 'veg', isEgg: false, isRoot: false, unit: 'pcs', step: 1 },
+      { id: 'bhindi', name: 'Bhindi (Okra)', cat: 'veg', isEgg: false, isRoot: false, unit: 'g', step: 250 },
+      { id: 'gajar', name: 'Gajar (Carrot)', cat: 'veg', isEgg: false, isRoot: true, unit: 'g', step: 200 },
+
+      // Fruits
+      { id: 'kela', name: 'Kela (Banana)', cat: 'fruits', isEgg: false, unit: 'pcs', step: 1 },
+      { id: 'seb', name: 'Seb (Apple)', cat: 'fruits', isEgg: false, unit: 'g', step: 250 },
+      { id: 'aam', name: 'Aam (Mango)', cat: 'fruits', isEgg: false, unit: 'g', step: 250 },
+      { id: 'chiku', name: 'Chiku (Sapodilla)', cat: 'fruits', isEgg: false, unit: 'g', step: 200 },
+
+      // Grains & Dals
+      { id: 'atta', name: 'Atta (Wheat Flour)', cat: 'grains', isEgg: false, unit: 'g', step: 500 },
+      { id: 'rice', name: 'Rice', cat: 'grains', isEgg: false, unit: 'g', step: 500 },
+      { id: 'besan', name: 'Besan (Gram Flour)', cat: 'grains', isEgg: false, unit: 'g', step: 250 },
+      { id: 'suji', name: 'Suji (Semolina)', cat: 'grains', isEgg: false, unit: 'g', step: 250 },
+      { id: 'toor_dal', name: 'Toor Dal', cat: 'grains', isEgg: false, unit: 'g', step: 250 },
+      { id: 'moong_dal', name: 'Moong Dal', cat: 'grains', isEgg: false, unit: 'g', step: 250 },
+
+      // Spices & Oils
+      { id: 'oil', name: 'Cooking Oil', cat: 'spices', isEgg: false, unit: 'ml', step: 250 },
+      { id: 'salt', name: 'Salt', cat: 'spices', isEgg: false, unit: 'g', step: 100 },
+      { id: 'haldi', name: 'Haldi (Turmeric)', cat: 'spices', isEgg: false, unit: 'g', step: 50 },
+      { id: 'jeera', name: 'Jeera (Cumin)', cat: 'spices', isEgg: false, unit: 'g', step: 50 },
+      { id: 'lal_mirch', name: 'Lal Mirch Powder', cat: 'spices', isEgg: false, unit: 'g', step: 50 }
+    ];
+
+    // App State
+    let kitchenStock = {};
+    let currentDiet = 'veg';
+    let currentCat = 'all';
+
+    // Initialize App
+    window.onload = () => {
+      loadState();
+      renderIngredients();
+      updateCount();
+    };
+
+    function loadState() {
+      const savedStock = localStorage.getItem('pammy_stock');
+      if (savedStock) kitchenStock = JSON.parse(savedStock);
+      const key = localStorage.getItem('gemini_api_key');
+      if (key) document.getElementById('api-key-input').value = key;
+    }
+
+    function saveStock() {
+      localStorage.setItem('pammy_stock', JSON.stringify(kitchenStock));
+      updateCount();
+    }
+
+    function updateCount() {
+      const count = Object.values(kitchenStock).filter(qty => qty > 0).length;
+      document.getElementById('active-count').innerText = `${count} items in your kitchen`;
+    }
+
+    function setDiet(mode) {
+      currentDiet = mode;
+      ['veg', 'eggetarian', 'jain'].forEach(m => {
+        const btn = document.getElementById(`diet-${m}`);
+        if (m === mode) {
+          btn.className = "px-3 py-1 text-xs font-semibold rounded-md bg-green-600 text-white shadow-sm";
+        } else {
+          btn.className = "px-3 py-1 text-xs font-semibold rounded-md text-gray-600";
+        }
+      });
+      renderIngredients();
+    }
+
+    function filterCategory(cat) {
+      currentCat = cat;
+      renderIngredients();
+    }
+
+    function filterIngredients() {
+      renderIngredients();
+    }
+
+    function renderIngredients() {
+      const grid = document.getElementById('ingredients-grid');
+      grid.innerHTML = '';
+      const query = document.getElementById('quick-input').value.toLowerCase();
+
+      ingredientsData.forEach(item => {
+        // Filter rules
+        if (currentDiet === 'veg' && item.isEgg) return;
+        if (currentDiet === 'jain' && (item.isEgg || item.isRoot)) return;
+        if (currentCat !== 'all' && item.cat !== currentCat) return;
+        if (query && !item.name.toLowerCase().includes(query)) return;
+
+        const qty = kitchenStock[item.id] || 0;
+        const isAvailable = qty > 0;
+
+        const card = document.createElement('div');
+        card.className = `p-3 rounded-xl border transition flex flex-col justify-between ${
+          isAvailable ? 'bg-green-50 border-green-300 shadow-sm' : 'bg-white border-gray-200 opacity-60'
+        }`;
+
+        card.innerHTML = `
+          <div>
+            <div class="flex justify-between items-start">
+              <span class="font-bold text-xs text-gray-800">${item.name}</span>
+              ${isAvailable ? `<span class="text-[10px] bg-green-200 text-green-800 px-1.5 py-0.5 rounded font-semibold">Available</span>` : `<span class="text-[10px] text-red-400">Out</span>`}
+            </div>
+          </div>
+          <div class="mt-3 flex items-center justify-between">
+            <button onclick="updateQty('${item.id}', -${item.step})" class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-sm">-</button>
+            <span class="text-xs font-bold ${isAvailable ? 'text-green-700' : 'text-gray-400'}">${qty} ${item.unit}</span>
+            <button onclick="updateQty('${item.id}', ${item.step})" class="w-7 h-7 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm">+</button>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function updateQty(id, delta) {
+      const current = kitchenStock[id] || 0;
+      const next = Math.max(0, current + delta);
+      kitchenStock[id] = next;
+      saveStock();
+      renderIngredients();
+    }
+
+    function resetKitchen() {
+      kitchenStock = {};
+      saveStock();
+      renderIngredients();
+    }
+
+    function openSettings() { document.getElementById('settings-modal').classList.remove('hidden'); }
+    function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); }
+    function closeResults() { document.getElementById('results-modal').classList.add('hidden'); }
+
+    function saveSettings() {
+      const key = document.getElementById('api-key-input').value.trim();
+      localStorage.setItem('gemini_api_key', key);
+      closeSettings();
+      alert('API Key Saved Successfully!');
+    }
+
+    // AI Generation Logic using Gemini API
+    async function generateRecipes() {
+      const activeItems = ingredientsData
+        .filter(item => (kitchenStock[item.id] || 0) > 0)
+        .map(item => `${item.name} (${kitchenStock[item.id]} ${item.unit})`);
+
+      if (activeItems.length === 0) {
+        alert('Please select at least 1 ingredient in your kitchen!');
+        return;
+      }
+
+      const apiKey = localStorage.getItem('gemini_api_key');
+      const resultsContent = document.getElementById('results-content');
+      document.getElementById('results-modal').classList.remove('hidden');
+
+      if (!apiKey) {
+        resultsContent.innerHTML = `
+          <div class="text-center py-6 space-y-3">
+            <p class="text-red-500 font-semibold">No API Key Configured</p>
+            <p class="text-xs text-gray-500">Please add your free Google AI Studio key in Settings to solve recipes dynamically.</p>
+            <button onclick="closeResults(); openSettings();" class="bg-amber-500 text-white text-xs font-bold px-4 py-2 rounded-lg">Open Settings</button>
+          </div>
+        `;
+        return;
+      }
+
+      resultsContent.innerHTML = `
+        <div class="text-center py-8 space-y-2">
+          <i class="fa-solid fa-spinner fa-spin text-amber-500 text-3xl"></i>
+          <p class="text-xs text-gray-500">Asking Chef Gemini for optimal Indian recipes...</p>
+        </div>
+      `;
+
+      const prompt = `You are Chef Gemini for Pammy's Food Recipe Solver. 
+      Available Ingredients: ${activeItems.join(', ')}.
+      Diet Mode: ${currentDiet}.
+      Meal Type: ${document.getElementById('meal-type').value}.
+      Time Limit: ${document.getElementById('time-limit').value}.
+      Portion: ${document.getElementById('portion').value}.
+      Vibe: ${document.getElementById('vibe').value}.
+
+      Provide 3 precise Indian recipe suggestions. Output ONLY HTML formatted recipe cards with title, cooking time, step-by-step instructions, and missing ingredient list.`;
+
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }]
+          })
+        });
+
+        const data = await res.json();
+        const text = data.candidates[0].content.parts[0].text;
+        resultsContent.innerHTML = text.replace(/```html|```/g, '');
+      } catch (err) {
+        resultsContent.innerHTML = `<p class="text-red-500 text-xs">Error generating recipes: ${err.message}</p>`;
+      }
+    }
+
+    // Voice Input Handler
+    function startVoice() {
+      if (!('webkitSpeechRecognition' in window)) {
+        alert('Voice dictation is not supported on this browser.');
+        return;
+      }
+      const rec = new webkitSpeechRecognition();
+      rec.lang = 'en-IN';
+      rec.onresult = (e) => {
+        document.getElementById('quick-input').value = e.results[0][0].transcript;
+        renderIngredients();
+      };
+      rec.start();
+    }
+  </script>
+</body>
+  </html>
+  
