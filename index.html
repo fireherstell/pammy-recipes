@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chef Pammy's Food Recipe Solver</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background-color: #faf7f2;
+      color: #1f2937;
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .glass {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+    }
+  </style>
+</head>
+<body class="pb-36 min-h-screen">
+
+  <!-- TOP HEADER -->
+  <header class="sticky top-0 z-40 glass border-b border-orange-100 px-4 py-3 shadow-xs">
+    <div class="max-w-5xl mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 bg-gradient-to-tr from-amber-500 to-orange-500 rounded-2xl flex items-center justify-center text-white text-xl shadow-md shadow-orange-500/20">
+          👩‍🍳
+        </div>
+        <div>
+          <h1 class="font-extrabold text-sm sm:text-base tracking-tight text-gray-900 leading-tight">CHEF PAMMY'S RECIPES</h1>
+          <p class="text-[11px] text-gray-500">Cook with your pantry • Powered by Gemini AI</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-2">
+        <button onclick="toggleSettingsModal(true)" class="flex items-center space-x-1 px-3 py-1.5 border border-gray-200 rounded-xl text-xs font-semibold bg-white hover:bg-orange-50 text-gray-700 shadow-sm transition-all active:scale-95">
+          <span>⚙️</span>
+          <span class="hidden sm:inline">Settings</span>
+        </button>
+        <button onclick="openSavedRecipesModal()" class="flex items-center space-x-1 px-3 py-1.5 border border-gray-200 rounded-xl text-xs font-semibold bg-white hover:bg-orange-50 text-gray-700 shadow-sm transition-all active:scale-95">
+          <span>📖</span>
+          <span class="hidden sm:inline">Saved</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-5xl mx-auto px-4 pt-5 space-y-5">
+
+    <!-- SEARCH & CONTROLS -->
+    <div class="space-y-3">
+      <div class="relative">
+        <input id="searchInput" type="text" oninput="handleSearch()" placeholder="Search from 550+ items (e.g. Aloo, Paneer, Besan, Jeera, Milk)..." 
+               class="w-full pl-11 pr-24 py-3 bg-white border border-orange-100 rounded-2xl shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all" />
+        <span class="absolute left-4 top-3.5 text-gray-400 text-base">🔍</span>
+        <button onclick="clearSearch()" id="clearSearchBtn" class="hidden absolute right-3 top-2.5 px-2.5 py-1 text-xs text-gray-400 hover:text-gray-700 font-medium">Clear</button>
+      </div>
+
+      <!-- Quick Suggested Combos -->
+      <div class="flex items-center space-x-2 overflow-x-auto no-scrollbar py-1 text-xs">
+        <span class="text-gray-400 font-semibold uppercase text-[10px] tracking-wider shrink-0">Quick Add:</span>
+        <button onclick="applyQuickFilter(['Potato', 'Cumin Seeds'])" class="shrink-0 bg-white border border-amber-200/80 text-amber-900 px-3 py-1.5 rounded-full hover:bg-amber-50 shadow-2xs font-medium">🥔 Aloo + Jeera</button>
+        <button onclick="applyQuickFilter(['Paneer', 'Tomato'])" class="shrink-0 bg-white border border-amber-200/80 text-amber-900 px-3 py-1.5 rounded-full hover:bg-amber-50 shadow-2xs font-medium">🧀 Paneer + Tamatar</button>
+        <button onclick="applyQuickFilter(['Spinach', 'Paneer'])" class="shrink-0 bg-white border border-amber-200/80 text-amber-900 px-3 py-1.5 rounded-full hover:bg-amber-50 shadow-2xs font-medium">🥬 Palak Paneer</button>
+        <button onclick="applyQuickFilter(['Curd', 'Rice Regular'])" class="shrink-0 bg-white border border-amber-200/80 text-amber-900 px-3 py-1.5 rounded-full hover:bg-amber-50 shadow-2xs font-medium">🍚 Curd Rice</button>
+        <button onclick="applyQuickFilter(['Gram Flour', 'Onion'])" class="shrink-0 bg-white border border-amber-200/80 text-amber-900 px-3 py-1.5 rounded-full hover:bg-amber-50 shadow-2xs font-medium">🧅 Onion Pakora</button>
+      </div>
+    </div>
+
+    <!-- CATEGORY TABS -->
+    <div class="sticky top-[61px] z-30 bg-[#faf7f2]/95 backdrop-blur-md py-2 border-b border-orange-100/60">
+      <div id="categoryTabs" class="flex items-center space-x-2 overflow-x-auto no-scrollbar">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+
+    <!-- INGREDIENT LIST STATS -->
+    <div class="flex items-center justify-between text-xs text-gray-500 px-1">
+      <span id="filteredResultsLabel">Showing all items</span>
+      <button onclick="clearAllSelections()" class="text-orange-600 hover:text-orange-700 font-medium">Reset Kitchen Selection</button>
+    </div>
+
+    <!-- INGREDIENT CARDS GRID -->
+    <div id="ingredientsGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+      <!-- Rendered via JS -->
+    </div>
+
+  </main>
+
+  <!-- BOTTOM FLOATING ACTION BAR -->
+  <div class="fixed bottom-0 left-0 right-0 p-4 glass border-t border-orange-100 z-30 flex justify-center">
+    <button id="askChefBtn" onclick="askChefPammy()" class="w-full max-w-lg bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 active:scale-[0.99] text-white font-bold py-3.5 px-6 rounded-2xl shadow-xl shadow-orange-500/25 flex items-center justify-center space-x-2 transition-all">
+      <span class="text-lg">✨</span>
+      <span>Ask Chef Pammy (<span id="selectedCount" class="font-extrabold text-amber-200">0</span> items)</span>
+    </button>
+  </div>
+
+  <!-- SETTINGS MODAL -->
+  <div id="settingsModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl max-h-[92vh] overflow-y-auto border border-gray-100">
+      <div class="flex items-center justify-between border-b pb-3">
+        <div class="flex items-center space-x-2">
+          <span class="text-xl">⚙️</span>
+          <h2 class="text-lg font-bold text-gray-900">App Settings</h2>
+        </div>
+        <button onclick="toggleSettingsModal(false)" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center font-bold">✕</button>
+      </div>
+
+      <!-- Gemini API Key Setup -->
+      <div class="space-y-2">
+        <label class="block text-xs font-bold uppercase tracking-wider text-gray-700">Google Gemini API Key (Stored Locally)</label>
+        <input id="apiKeyInput" type="password" placeholder="AIzaSy..." class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 outline-none" />
+        <p class="text-[11px] text-gray-500 leading-normal">
+          Get a free key instantly from <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-orange-600 underline font-semibold">Google AI Studio</a>. Stored purely inside your browser localStorage.
+        </p>
+      </div>
+
+      <!-- Unit Preference -->
+      <div class="space-y-2">
+        <label class="block text-xs font-bold uppercase tracking-wider text-gray-700">Recipe Units</label>
+        <div class="grid grid-cols-2 gap-2">
+          <button id="unitMetric" onclick="setMeasurementUnit('metric')" class="py-2.5 text-xs font-bold rounded-xl border border-orange-500 bg-orange-50 text-orange-700 transition-all">Metric (g / ml)</button>
+          <button id="unitCups" onclick="setMeasurementUnit('cups')" class="py-2.5 text-xs font-medium rounded-xl border border-gray-200 bg-white text-gray-600 transition-all">Cups & Spoons</button>
+        </div>
+      </div>
+
+      <!-- Dietary Preference -->
+      <div class="space-y-2">
+        <label class="block text-xs font-bold uppercase tracking-wider text-gray-700">Dietary Filter</label>
+        <select id="dietaryFilterSelect" class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-medium outline-none">
+          <option value="vegetarian">Pure Vegetarian (Eggs Optional)</option>
+          <option value="jain">Jain (No Root Veg, No Onion/Garlic)</option>
+          <option value="vegan">Strict Vegan (No Dairy, No Honey)</option>
+          <option value="any">Standard Home Style</option>
+        </select>
+      </div>
+
+      <!-- Pantry Staples -->
+      <div class="space-y-2">
+        <label class="block text-xs font-bold uppercase tracking-wider text-gray-700">Default Kitchen Staples (Assumed Present)</label>
+        <div id="staplesList" class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1"></div>
+        <div class="flex space-x-2 pt-1">
+          <input id="newStapleInput" type="text" placeholder="Add staple (e.g. Kasuri Methi)" class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none" />
+          <button onclick="addStaple()" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-bold">+ Add</button>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t flex justify-end">
+        <button onclick="saveSettings()" class="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow-md">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SAVED RECIPES MODAL -->
+  <div id="savedRecipesModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto border border-gray-100">
+      <div class="flex items-center justify-between border-b pb-3">
+        <div class="flex items-center space-x-2">
+          <span class="text-xl">📖</span>
+          <h2 class="text-lg font-bold text-gray-900">Your CookBook</h2>
+        </div>
+        <button onclick="closeSavedRecipesModal()" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center font-bold">✕</button>
+      </div>
+      <div id="savedRecipesContainer" class="space-y-4"></div>
+    </div>
+  </div>
+
+  <!-- AI RESPONSE MODAL -->
+  <div id="recipeResultModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-6 space-y-4 shadow-2xl max-h-[92vh] flex flex-col border border-gray-100">
+      <div class="flex items-center justify-between border-b pb-3">
+        <div class="flex items-center space-x-2">
+          <span class="text-xl">👩‍🍳</span>
+          <h2 class="text-lg font-bold text-gray-900">Chef Pammy's Recommendations</h2>
+        </div>
+        <button onclick="toggleRecipeModal(false)" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center font-bold">✕</button>
+      </div>
+      <div id="recipeOutput" class="space-y-4 text-sm leading-relaxed overflow-y-auto pr-1 flex-1"></div>
+    </div>
+  </div>
+
+  <!-- MASTER LOGIC & FULL INGREDIENTS DATASET -->
+  <script>
+    // COMPLETE ~550 RAW DATASET PARSED
+    const RAW_MASTER_DATA = `
+Vegetables | Potato | Aloo | 1 kg | 250 g
+Vegetables | Onion | Pyaz | 1 kg | 250 g
+Vegetables | Tomato | Tamatar | 1 kg | 250 g
+Vegetables | Cherry Tomato | Cherry Tamatar | 250 g | 100 g
+Vegetables | Garlic | Lasan | 250 g | 100 g
+Vegetables | Ginger | Adrak | 250 g | 100 g
+Vegetables | Green Chilli | Hari Mirch | 100 g | 50 g
+Vegetables | Coriander Leaves | Dhaniya Patta | 100 g | 50 g
+Vegetables | Mint | Podina | 100 g | 50 g
+Vegetables | Curry Leaves | Kadi Patta | 50 g | 10 g
+Vegetables | Lemon | Nimbu | 250 g | 1 piece
+Vegetables | Capsicum Green | Hari Shimla Mirch | 500 g | 250 g
+Vegetables | Capsicum Red | Lal Shimla Mirch | 500 g | 250 g
+Vegetables | Capsicum Yellow | Peeli Shimla Mirch | 500 g | 250 g
+Vegetables | Carrot | Gajar | 1 kg | 250 g
+Vegetables | Beetroot | Chukandar | 1 kg | 250 g
+Vegetables | Radish White | Mooli | 500 g | 250 g
+Vegetables | Turnip | Shalgam | 500 g | 250 g
+Vegetables | Cauliflower | Phool Gobhi | 1 piece | 250 g
+Vegetables | Cabbage | Patta Gobhi | 1 piece | 100 g
+Vegetables | Red Cabbage | Laal Patta Gobhi | 1 piece | 250 g
+Vegetables | Broccoli | Broccoli | 1 piece | 250 g
+Vegetables | Brussels Sprouts | Brussels Sprouts | 250 g | 100 g
+Vegetables | Kohlrabi | Ganth Gobhi | 500 g | 250 g
+Vegetables | Spinach | Palak | 250 g | 100 g
+Vegetables | Fenugreek Leaves | Methi | 250 g | 100 g
+Vegetables | Mustard Greens | Sarson Saag | 500 g | 250 g
+Vegetables | Bathua | Bathua | 250 g | 100 g
+Vegetables | Amaranth Leaves | Chaulai | 250 g | 100 g
+Vegetables | Dill Leaves | Suva Bhaji | 100 g | 50 g
+Vegetables | Sorrel Leaves | Gongura | 250 g | 100 g
+Vegetables | Colocasia Leaves | Arbi Ke Patte | 250 g | 100 g
+Vegetables | Lettuce | Lettuce | 1 piece | 100 g
+Vegetables | Iceberg Lettuce | Iceberg | 1 piece | 100 g
+Vegetables | Romaine Lettuce | Romaine | 1 piece | 100 g
+Vegetables | Kale | Kale | 250 g | 100 g
+Vegetables | Celery | Celery | 250 g | 100 g
+Vegetables | Parsley | Parsley | 100 g | 50 g
+Vegetables | Spring Onion | Hara Pyaz | 100 g | 50 g
+Vegetables | Leek | Leeks | 250 g | 100 g
+Vegetables | Okra | Bhindi | 500 g | 250 g
+Vegetables | Eggplant Big | Baingan | 500 g | 250 g
+Vegetables | Eggplant Small | Chota Baingan | 500 g | 250 g
+Vegetables | Bottle Gourd | Lauki | 1 kg | 250 g
+Vegetables | Ridge Gourd | Turai | 500 g | 250 g
+Vegetables | Sponge Gourd | Gilki | 500 g | 250 g
+Vegetables | Bitter Gourd | Karela | 500 g | 250 g
+Vegetables | Ash Gourd | Petha | 1 kg | 250 g
+Vegetables | Snake Gourd | Chichinda | 500 g | 250 g
+Vegetables | Ivy Gourd | Tindora Kundru | 500 g | 250 g
+Vegetables | Round Gourd | Tinda | 500 g | 250 g
+Vegetables | Pointed Gourd | Parwal | 500 g | 250 g
+Vegetables | Pumpkin | Kaddu | 1 kg | 250 g
+Vegetables | Cucumber | Kheera | 500 g | 250 g
+Vegetables | Zucchini | Zucchini | 500 g | 250 g
+Vegetables | Green Peas | Hara Matar | 500 g | 250 g
+Vegetables | French Beans | Farasbi | 500 g | 250 g
+Vegetables | Cluster Beans | Gawar Phali | 500 g | 250 g
+Vegetables | Broad Beans | Sem Phali | 500 g | 250 g
+Vegetables | Long Beans | Lobia Phali | 500 g | 250 g
+Vegetables | Drumstick | Saijan Phali | 500 g | 1 piece
+Vegetables | Sweet Corn | Bhutta | 2 pieces | 1 piece
+Vegetables | Baby Corn | Baby Corn | 200 g | 100 g
+Vegetables | Sweet Potato | Shakarkandi | 1 kg | 250 g
+Vegetables | Elephant Yam | Suran Jimikand | 500 g | 250 g
+Vegetables | Colocasia | Arbi | 500 g | 250 g
+Vegetables | Raw Banana | Kachcha Kela | 4 pieces | 1 piece
+Vegetables | Raw Papaya | Kachcha Papita | 1 piece | 250 g
+Vegetables | Raw Mango | Kachcha Aam | 500 g | 1 piece
+Vegetables | Raw Jackfruit | Kathal | 1 piece | 250 g
+Vegetables | Banana Stem | Kele Ka Tana | 1 piece | 250 g
+Vegetables | Banana Flower | Kele Ka Phool | 1 piece | 1 piece
+Vegetables | Lotus Stem | Kamal Kakdi | 250 g | 100 g
+Vegetables | Water Chestnut | Singhara | 500 g | 250 g
+Vegetables | Tapioca Root | Kappa Sabudana Kand | 1 kg | 250 g
+Vegetables | Button Mushroom | Khumbh | 200 g | 100 g
+Vegetables | Oyster Mushroom | Oyster Khumbh | 200 g | 100 g
+Vegetables | Shiitake Mushroom | Shiitake | 150 g | 50 g
+Vegetables | Asparagus | Asparagus | 250 g | 100 g
+Vegetables | Snow Peas | Snow Peas | 250 g | 100 g
+Vegetables | Green Garlic | Hara Lasan | 100 g | 50 g
+Vegetables | Raw Turmeric | Kachchi Haldi | 100 g | 50 g
+Vegetables | Mango Ginger | Amba Haldi | 100 g | 50 g
+Vegetables | Lemongrass | Lemongrass | 100 g | 50 g
+Vegetables | Moong Sprouts | Moong Ankur | 250 g | 100 g
+Vegetables | Mixed Sprouts | Mixed Ankur | 250 g | 100 g
+Vegetables | Bean Sprouts | Bean Sprouts | 250 g | 100 g
+Vegetables | Dried Sangri Beans | Sangri | 100 g | 50 g
+Vegetables | Dried Ker Berries | Ker | 100 g | 50 g
+Vegetables | Pumpkin Flower | Kaddu Ka Phool | 100 g | 50 g
+Vegetables | Spring Garlic Chives | Garlic Chives | 100 g | 50 g
+Vegetables | Mixed Frozen Vegetables | Frozen Mix Sabzi | 500 g | 250 g
+Vegetables | Frozen Green Peas | Frozen Matar | 500 g | 250 g
+Vegetables | Frozen Sweet Corn | Frozen Corn | 500 g | 250 g
+Fruits | Apple | Seb | 1 kg | 250 g
+Fruits | Banana | Kela | 1 dozen | 1 piece
+Fruits | Mango | Aam | 1 kg | 250 g
+Fruits | Orange | Santra | 1 kg | 250 g
+Fruits | Sweet Lime | Mosambi | 1 kg | 1 piece
+Fruits | Kinnow | Kinnow | 1 kg | 250 g
+Fruits | Tangerine | Naranji | 1 kg | 250 g
+Fruits | Grapes Green | Hare Angoor | 500 g | 100 g
+Fruits | Grapes Black | Kale Angoor | 500 g | 100 g
+Fruits | Papaya | Papita | 1 piece | 250 g
+Fruits | Watermelon | Tarbooz | 1 piece | 250 g
+Fruits | Muskmelon | Kharbooja | 1 piece | 250 g
+Fruits | Pineapple | Anaas | 1 piece | 250 g
+Fruits | Pomegranate | Anar | 1 piece | 1 piece
+Fruits | Guava | Amrood | 1 kg | 250 g
+Fruits | Pear | Nashpati | 1 kg | 250 g
+Fruits | Peach | Aadu | 1 kg | 250 g
+Fruits | Plum | Aloo Bukhara | 500 g | 100 g
+Fruits | Apricot | Khubani | 500 g | 100 g
+Fruits | Nectarine | Nectarine | 500 g | 100 g
+Fruits | Cherry | Cherry | 250 g | 100 g
+Fruits | Strawberry | Strawberry | 250 g | 100 g
+Fruits | Blueberry | Blueberry | 125 g | 50 g
+Fruits | Raspberry | Raspberry | 125 g | 50 g
+Fruits | Blackberry | Blackberry | 125 g | 50 g
+Fruits | Kiwi | Kiwi | 500 g | 1 piece
+Fruits | Lychee | Litchi | 500 g | 100 g
+Fruits | Jamun | Jamun | 500 g | 100 g
+Fruits | Jujube | Ber | 500 g | 100 g
+Fruits | Custard Apple | Sitaphal | 1 kg | 250 g
+Fruits | Sapodilla | Chiku | 500 g | 100 g
+Fruits | Fresh Fig | Anjeer Fresh | 250 g | 100 g
+Fruits | Fresh Dates | Khajoor Fresh | 250 g | 100 g
+Fruits | Ripe Jackfruit | Pakka Kathal | 1 piece | 250 g
+Fruits | Dragon Fruit | Dragon Fruit | 1 piece | 1 piece
+Fruits | Avocado | Avocado | 1 piece | 1 piece
+Fruits | Passion Fruit | Passion Fruit | 250 g | 100 g
+Fruits | Star Fruit | Kamrakh | 500 g | 100 g
+Fruits | Indian Gooseberry | Amla | 500 g | 100 g
+Fruits | Wood Apple | Bel | 1 piece | 1 piece
+Fruits | Fresh Tamarind | Kachchi Imli | 250 g | 100 g
+Fruits | Coconut | Nariyal | 1 piece | 1 piece
+Fruits | Tender Coconut | Kacha Nariyal | 1 piece | 1 piece
+Fruits | Mulberry | Shahtoot | 250 g | 100 g
+Fruits | Phalsa | Phalsa | 250 g | 100 g
+Fruits | Karonda | Karonda | 250 g | 100 g
+Fruits | Pomelo | Chakotra | 1 piece | 1 piece
+Fruits | Persimmon | Japani Phal | 500 g | 1 piece
+Fruits | Mangosteen | Mangosteen | 250 g | 1 piece
+Fruits | Rambutan | Rambutan | 250 g | 100 g
+Fruits | Sugarcane | Ganna | 1 piece | 1 piece
+Fruits | Kokum | Kokum | 100 g | 50 g
+Fruits | Watermelon Seeds Fresh | Tarbooz Beej | 100 g | 50 g
+Dairy | Milk Full Cream | Doodh | 1 litre | 250 ml
+Dairy | Milk Toned | Toned Doodh | 1 litre | 250 ml
+Dairy | Milk Skimmed | Skimmed Doodh | 1 litre | 250 ml
+Dairy | Curd | Dahi | 500 g | 100 g
+Dairy | Hung Curd | Chakka Dahi | 250 g | 100 g
+Dairy | Greek Yogurt | Greek Yogurt | 400 g | 100 g
+Dairy | Paneer | Paneer | 200 g | 100 g
+Dairy | Cottage Cheese Block | Malai Paneer | 200 g | 100 g
+Dairy | Cheese Slices | Cheese Slice | 10 slices | 1 slice
+Dairy | Cheese Cube | Cheese Cube | 8 cubes | 1 piece
+Dairy | Mozzarella Cheese | Mozzarella | 200 g | 100 g
+Dairy | Cheddar Cheese | Cheddar | 200 g | 100 g
+Dairy | Processed Cheese | Processed Cheese | 200 g | 100 g
+Dairy | Cream Cheese | Cream Cheese | 200 g | 100 g
+Dairy | Parmesan | Parmesan | 100 g | 50 g
+Dairy | Feta Cheese | Feta | 200 g | 100 g
+Dairy | Ricotta | Ricotta | 250 g | 100 g
+Dairy | Mascarpone | Mascarpone | 250 g | 100 g
+Dairy | Butter Salted | Makhan | 100 g | 50 g
+Dairy | Butter Unsalted | Unsalted Makhan | 100 g | 50 g
+Dairy | Ghee | Ghee | 500 g | 50 g
+Dairy | Fresh Cream | Malai | 200 ml | 50 ml
+Dairy | Whipping Cream | Whipping Cream | 200 ml | 50 ml
+Dairy | Sour Cream | Sour Cream | 200 g | 50 g
+Dairy | Buttermilk | Chaas | 1 litre | 250 ml
+Dairy | Sweet Lassi | Meethi Lassi | 500 ml | 250 ml
+Dairy | Khoya | Mawa | 250 g | 100 g
+Dairy | Condensed Milk | Condensed Milk | 400 g | 100 g
+Dairy | Evaporated Milk | Evaporated Milk | 400 ml | 100 ml
+Dairy | Milk Powder | Milk Powder | 200 g | 50 g
+Dairy | Rabri | Rabri | 250 g | 100 g
+Dairy | Mishti Doi | Mishti Doi | 400 g | 100 g
+Dairy | Ice Cream | Ice Cream | 500 ml | 100 ml
+Dairy | Tofu | Tofu | 200 g | 100 g
+Dairy | Soy Milk | Soy Doodh | 1 litre | 250 ml
+Dairy | Almond Milk | Badam Doodh | 1 litre | 250 ml
+Dairy | Oat Milk | Oat Doodh | 1 litre | 250 ml
+Dairy | Coconut Milk | Nariyal Doodh | 400 ml | 100 ml
+Dairy | Coconut Cream | Nariyal Cream | 200 ml | 50 ml
+Dairy | Vegan Butter | Vegan Butter | 200 g | 50 g
+Eggs | Egg | Anda | 1 dozen | 1 piece
+Eggs | Brown Egg | Desi Anda | 6 pieces | 1 piece
+Eggs | Egg White Liquid | Anda Safed | 250 ml | 50 ml
+Eggs | Quail Egg | Bater Anda | 12 pieces | 1 piece
+Eggs | Duck Egg | Batakh Anda | 6 pieces | 1 piece
+Eggs | Boiled Egg | Ubla Anda | 6 pieces | 1 piece
+Grains | Wheat Flour | Atta | 5 kg | 500 g
+Grains | Whole Wheat Multigrain Flour | Multigrain Atta | 5 kg | 500 g
+Grains | All-purpose Flour | Maida | 1 kg | 250 g
+Grains | Semolina | Suji Rava | 1 kg | 250 g
+Grains | Fine Semolina | Bareek Suji | 1 kg | 250 g
+Grains | Gram Flour | Besan | 1 kg | 250 g
+Grains | Rice Flour | Chawal Atta | 1 kg | 250 g
+Grains | Corn Flour Makki | Makki Atta | 1 kg | 250 g
+Grains | Cornstarch | Cornflour | 200 g | 50 g
+Grains | Jowar Flour | Jowar Atta | 1 kg | 250 g
+Grains | Bajra Flour | Bajra Atta | 1 kg | 250 g
+Grains | Ragi Flour | Ragi Atta | 1 kg | 250 g
+Grains | Buckwheat Flour | Kuttu Atta | 500 g | 250 g
+Grains | Water Chestnut Flour | Singhara Atta | 500 g | 250 g
+Grains | Amaranth Flour | Rajgira Atta | 500 g | 250 g
+Grains | Sattu Flour | Sattu | 500 g | 100 g
+Grains | Oat Flour | Oat Atta | 500 g | 250 g
+Grains | Almond Flour | Badam Atta | 250 g | 50 g
+Grains | Rice Basmati | Basmati Chawal | 5 kg | 500 g
+Grains | Rice Regular | Chawal | 5 kg | 500 g
+Grains | Rice Brown | Brown Chawal | 1 kg | 250 g
+Grains | Rice Sona Masoori | Sona Masoori | 5 kg | 500 g
+Grains | Rice Parboiled | Ushna Chawal | 5 kg | 500 g
+Grains | Rice Black | Kala Chawal | 500 g | 250 g
+Grains | Rice Poha Thick | Mota Poha | 500 g | 250 g
+Grains | Rice Poha Thin | Patla Poha | 500 g | 250 g
+Grains | Puffed Rice | Murmura | 250 g | 100 g
+Grains | Sabudana | Sabudana | 500 g | 250 g
+Grains | Barnyard Millet | Sama Chawal | 500 g | 250 g
+Grains | Foxtail Millet | Kangni | 500 g | 250 g
+Grains | Little Millet | Kutki | 500 g | 250 g
+Grains | Pearl Millet | Bajra | 1 kg | 250 g
+Grains | Sorghum | Jowar | 1 kg | 250 g
+Grains | Finger Millet | Ragi | 1 kg | 250 g
+Grains | Oats Rolled | Oats | 500 g | 250 g
+Grains | Oats Instant | Instant Oats | 500 g | 250 g
+Grains | Broken Wheat | Daliya | 500 g | 250 g
+Grains | Quinoa | Quinoa | 500 g | 250 g
+Grains | Barley | Jau | 500 g | 250 g
+Grains | Couscous | Couscous | 500 g | 250 g
+Grains | Vermicelli | Seviyan | 500 g | 250 g
+Grains | Pasta Penne | Penne Pasta | 500 g | 250 g
+Grains | Pasta Spaghetti | Spaghetti | 500 g | 250 g
+Grains | Macaroni | Macaroni | 500 g | 250 g
+Grains | Noodles Hakka | Hakka Noodles | 500 g | 250 g
+Grains | Instant Noodles | Instant Noodles | 4 packs | 1 pack
+Grains | Rice Noodles | Rice Noodles | 400 g | 200 g
+Grains | Bread White | Bread | 1 packet | 2 slices
+Grains | Bread Brown | Brown Bread | 1 packet | 2 slices
+Grains | Pav | Pav | 6 pieces | 1 piece
+Grains | Burger Bun | Burger Bun | 4 pieces | 1 piece
+Grains | Pizza Base | Pizza Base | 2 pieces | 1 piece
+Grains | Tortilla Wrap | Tortilla | 6 pieces | 1 piece
+Grains | Pita Bread | Pita | 4 pieces | 1 piece
+Grains | Roti Ready | Ready Roti | 10 pieces | 1 piece
+Grains | Paratha Frozen | Frozen Paratha | 5 pieces | 1 piece
+Grains | Idli Dosa Batter | Idli Dosa Batter | 1 kg | 250 g
+Grains | Rava Idli Mix | Rava Idli Mix | 500 g | 250 g
+Grains | Dhokla Mix | Dhokla Mix | 500 g | 250 g
+Grains | Upma Mix | Upma Mix | 500 g | 250 g
+Grains | Poha Mix | Poha Mix | 500 g | 250 g
+Grains | Bread Crumbs | Bread Crumbs | 200 g | 50 g
+Grains | Cornflakes | Cornflakes | 500 g | 100 g
+Grains | Muesli | Muesli | 500 g | 100 g
+Grains | Papad Raw | Papad | 200 g | 2 pieces
+Pulses | Moong Dal Yellow | Moong Dal | 1 kg | 250 g
+Pulses | Moong Dal Green Split | Chilka Moong Dal | 1 kg | 250 g
+Pulses | Moong Whole | Sabut Moong | 1 kg | 250 g
+Pulses | Toor Dal | Arhar Dal | 1 kg | 250 g
+Pulses | Chana Dal | Chana Dal | 1 kg | 250 g
+Pulses | Masoor Dal Red | Lal Masoor Dal | 1 kg | 250 g
+Pulses | Masoor Whole | Sabut Masoor | 1 kg | 250 g
+Pulses | Urad Dal White | Urad Dal Dhuli | 1 kg | 250 g
+Pulses | Urad Dal Black Whole | Sabut Urad | 1 kg | 250 g
+Pulses | Urad Dal Black Split | Chilka Urad | 1 kg | 250 g
+Pulses | Kidney Beans | Rajma | 1 kg | 250 g
+Pulses | Kidney Beans Red Small | Chitra Rajma | 1 kg | 250 g
+Pulses | White Chickpeas | Kabuli Chana Chole | 1 kg | 250 g
+Pulses | Black Chickpeas | Kala Chana | 1 kg | 250 g
+Pulses | Black Eyed Peas | Lobia Chawli | 500 g | 250 g
+Pulses | Moth Beans | Moth Matki | 500 g | 250 g
+Pulses | Horse Gram | Kulthi | 500 g | 250 g
+Pulses | Dried Green Peas | Sukha Matar | 500 g | 250 g
+Pulses | Yellow Peas | Peeli Matar | 500 g | 250 g
+Pulses | Soybean | Soyabean | 500 g | 250 g
+Pulses | Soya Chunks | Soya Chunks | 200 g | 100 g
+Pulses | Soya Granules | Soya Granules | 200 g | 100 g
+Pulses | Lentil Brown | Brown Masoor | 500 g | 250 g
+Pulses | Pigeon Peas Fresh | Hara Toor | 250 g | 100 g
+Pulses | White Beans | Safed Sem | 500 g | 250 g
+Pulses | Fava Beans | Bakla | 500 g | 250 g
+Pulses | Lima Beans | Lima Beans | 500 g | 250 g
+Pulses | Roasted Chana | Bhuna Chana | 250 g | 50 g
+Pulses | Roasted Chana Dal | Bhuna Chana Dal | 250 g | 50 g
+Pulses | Peanuts Raw | Kachi Moongphali | 500 g | 100 g
+Pulses | Peanuts Roasted | Bhuni Moongphali | 250 g | 50 g
+Pulses | Mixed Dal | Panchmel Dal | 1 kg | 250 g
+Pulses | Canned Chickpeas | Tin Chole | 400 g | 200 g
+Pulses | Canned Kidney Beans | Tin Rajma | 400 g | 200 g
+Nuts | Almonds | Badam | 250 g | 50 g
+Nuts | Cashews | Kaju | 250 g | 50 g
+Nuts | Walnuts | Akhrot | 250 g | 50 g
+Nuts | Pistachios | Pista | 250 g | 50 g
+Nuts | Hazelnuts | Hazelnut | 200 g | 50 g
+Nuts | Pecans | Pecan | 200 g | 50 g
+Nuts | Brazil Nuts | Brazil Nut | 200 g | 50 g
+Nuts | Pine Nuts | Chilgoza | 100 g | 25 g
+Nuts | Peanuts | Moongphali | 500 g | 100 g
+Nuts | Raisins | Kishmish | 250 g | 50 g
+Nuts | Golden Raisins | Sunehri Kishmish | 250 g | 50 g
+Nuts | Dates Dry | Khajoor | 250 g | 50 g
+Nuts | Dried Figs | Anjeer | 250 g | 50 g
+Nuts | Dried Apricots | Khubani | 250 g | 50 g
+Nuts | Prunes | Aloo Bukhara Sukha | 250 g | 50 g
+Nuts | Cranberries Dried | Dried Cranberry | 200 g | 50 g
+Nuts | Dry Coconut | Sukha Nariyal Gola | 200 g | 50 g
+Nuts | Desiccated Coconut | Nariyal Powder | 200 g | 50 g
+Nuts | Makhana | Makhana Phool Makhana | 200 g | 50 g
+Nuts | Chironji | Chironji | 100 g | 25 g
+Nuts | Melon Seeds | Magaz | 100 g | 25 g
+Nuts | Poppy Seeds | Khus Khus | 100 g | 25 g
+Nuts | White Sesame | Safed Til | 250 g | 50 g
+Nuts | Black Sesame | Kala Til | 250 g | 50 g
+Nuts | Flax Seeds | Alsi | 250 g | 50 g
+Nuts | Chia Seeds | Chia | 200 g | 50 g
+Nuts | Sunflower Seeds | Surajmukhi Beej | 200 g | 50 g
+Nuts | Pumpkin Seeds | Kaddu Beej | 200 g | 50 g
+Nuts | Basil Seeds | Sabja | 100 g | 25 g
+Nuts | Watermelon Seeds | Tarbooz Magaz | 200 g | 50 g
+Nuts | Nut Mix | Mixed Dry Fruits | 500 g | 100 g
+Spices | Cumin Seeds | Jeera | 100 g | 50 g
+Spices | Black Cumin | Shahi Jeera | 50 g | 10 g
+Spices | Mustard Seeds | Rai | 100 g | 50 g
+Spices | Yellow Mustard | Peeli Sarson | 100 g | 50 g
+Spices | Fennel Seeds | Saunf | 100 g | 50 g
+Spices | Fenugreek Seeds | Methi Dana | 100 g | 50 g
+Spices | Coriander Seeds | Sabut Dhaniya | 100 g | 50 g
+Spices | Carom Seeds | Ajwain | 100 g | 50 g
+Spices | Nigella Seeds | Kalonji | 100 g | 50 g
+Spices | Black Pepper | Sabut Kali Mirch | 100 g | 50 g
+Spices | White Pepper | Safed Mirch | 50 g | 10 g
+Spices | Cardamom Green | Choti Elaichi | 50 g | 10 g
+Spices | Cardamom Black | Badi Elaichi | 50 g | 10 g
+Spices | Cloves | Laung | 50 g | 10 g
+Spices | Cinnamon Stick | Dalchini | 50 g | 10 g
+Spices | Cassia Bark | Taj | 50 g | 10 g
+Spices | Bay Leaf | Tej Patta | 50 g | 10 g
+Spices | Star Anise | Chakri Phool | 50 g | 10 g
+Spices | Mace | Javitri | 25 g | 5 g
+Spices | Nutmeg | Jaiphal | 25 g | 5 g
+Spices | Stone Flower | Dagad Phool | 25 g | 5 g
+Spices | Marathi Moggu | Kapok Buds | 25 g | 5 g
+Spices | Dry Red Chilli | Sukhi Lal Mirch | 100 g | 50 g
+Spices | Kashmiri Red Chilli | Kashmiri Mirch | 100 g | 50 g
+Spices | Byadgi Chilli | Byadgi Mirch | 100 g | 50 g
+Spices | Dried Mango Slices | Amchur Slices | 100 g | 50 g
+Spices | Pomegranate Seeds Dry | Anardana | 50 g | 10 g
+Spices | Saffron | Kesar | 1 g | 1 g
+Spices | Asafoetida | Hing | 50 g | 10 g
+Spices | Dry Ginger | Sonth | 100 g | 25 g
+Spices | Long Pepper | Pipli | 50 g | 10 g
+Spices | Cubeb | Kabab Chini | 25 g | 5 g
+Spices | Dried Fenugreek Leaves | Kasuri Methi | 50 g | 10 g
+Spices | Sichuan Pepper | Sichuan Pepper | 50 g | 10 g
+Masalas | Turmeric Powder | Haldi | 100 g | 50 g
+Masalas | Red Chilli Powder | Lal Mirch Powder | 100 g | 50 g
+Masalas | Kashmiri Chilli Powder | Kashmiri Mirch Powder | 100 g | 50 g
+Masalas | Coriander Powder | Dhaniya Powder | 100 g | 50 g
+Masalas | Cumin Powder | Jeera Powder | 100 g | 50 g
+Masalas | Black Pepper Powder | Kali Mirch Powder | 100 g | 50 g
+Masalas | Dry Mango Powder | Amchur Powder | 100 g | 50 g
+Masalas | Ginger Powder | Sonth Powder | 100 g | 50 g
+Masalas | Garlic Powder | Lasan Powder | 100 g | 50 g
+Masalas | Onion Powder | Pyaz Powder | 100 g | 50 g
+Masalas | Cinnamon Powder | Dalchini Powder | 50 g | 10 g
+Masalas | Cardamom Powder | Elaichi Powder | 50 g | 10 g
+Masalas | Nutmeg Powder | Jaiphal Powder | 25 g | 5 g
+Masalas | Garam Masala | Garam Masala | 100 g | 50 g
+Masalas | Sabzi Masala | Sabzi Masala | 100 g | 50 g
+Masalas | Kitchen King Masala | Kitchen King | 100 g | 50 g
+Masalas | Chana Masala | Chana Masala | 100 g | 50 g
+Masalas | Chole Masala | Chole Masala | 100 g | 50 g
+Masalas | Rajma Masala | Rajma Masala | 100 g | 50 g
+Masalas | Pav Bhaji Masala | Pav Bhaji Masala | 100 g | 50 g
+Masalas | Biryani Masala | Biryani Masala | 100 g | 50 g
+Masalas | Pulao Masala | Pulao Masala | 100 g | 50 g
+Masalas | Tandoori Masala | Tandoori Masala | 100 g | 50 g
+Masalas | Paneer Masala | Paneer Masala | 100 g | 50 g
+Masalas | Dal Fry Masala | Dal Masala | 100 g | 50 g
+Masalas | Sambar Powder | Sambar Masala | 100 g | 50 g
+Masalas | Rasam Powder | Rasam Masala | 100 g | 50 g
+Masalas | Chaat Masala | Chaat Masala | 100 g | 50 g
+Masalas | Jaljeera Powder | Jaljeera | 100 g | 50 g
+Masalas | Tea Masala | Chai Masala | 100 g | 50 g
+Masalas | Panch Phoron | Panch Phoron | 100 g | 50 g
+Masalas | Goda Masala | Goda Masala | 100 g | 50 g
+Masalas | Kolhapuri Masala | Kolhapuri Masala | 100 g | 50 g
+Masalas | Chettinad Masala | Chettinad Masala | 100 g | 50 g
+Masalas | Idli Podi | Milagai Podi | 100 g | 50 g
+Masalas | Pickle Masala | Achaar Masala | 100 g | 50 g
+Masalas | Dhansak Masala | Dhansak Masala | 100 g | 50 g
+Masalas | Amritsari Chole Masala | Amritsari Masala | 100 g | 50 g
+Masalas | Black Salt | Kala Namak | 100 g | 50 g
+Masalas | Table Salt | Namak | 1 kg | 100 g
+Masalas | Rock Salt | Sendha Namak | 500 g | 100 g
+Masalas | Iodised Salt | Iodine Namak | 1 kg | 100 g
+Masalas | Chilli Flakes | Chilli Flakes | 100 g | 50 g
+Masalas | Oregano | Oregano | 50 g | 10 g
+Masalas | Mixed Herbs | Mixed Herbs | 50 g | 10 g
+Masalas | Basil Dried | Sukhi Tulsi Basil | 50 g | 10 g
+Masalas | Thyme | Thyme | 50 g | 10 g
+Masalas | Rosemary | Rosemary | 50 g | 10 g
+Masalas | Paprika | Paprika | 100 g | 50 g
+Masalas | Cajun Seasoning | Cajun Seasoning | 100 g | 50 g
+Masalas | Italian Seasoning | Italian Seasoning | 50 g | 10 g
+Masalas | Garlic Salt | Garlic Salt | 100 g | 50 g
+Masalas | Taco Seasoning | Taco Seasoning | 50 g | 10 g
+Masalas | Peri Peri Masala | Peri Peri Masala | 100 g | 50 g
+Masalas | Falafel Mix | Falafel Mix | 200 g | 100 g
+Masalas | Sumac | Sumac | 50 g | 10 g
+Masalas | Za'atar | Zaatar | 50 g | 10 g
+Masalas | Cumin Coriander Blend | Dhana Jeera | 100 g | 50 g
+Oils | Refined Cooking Oil | Tel | 1 litre | 250 ml
+Oils | Sunflower Oil | Suraj Mukhi Tel | 1 litre | 250 ml
+Oils | Mustard Oil | Sarson Ka Tel | 1 litre | 250 ml
+Oils | Groundnut Oil | Moongphali Tel | 1 litre | 250 ml
+Oils | Coconut Oil | Nariyal Tel | 500 ml | 100 ml
+Oils | Sesame Oil | Til Ka Tel | 500 ml | 100 ml
+Oils | Rice Bran Oil | Rice Bran Tel | 1 litre | 250 ml
+Oils | Soybean Oil | Soyabean Tel | 1 litre | 250 ml
+Oils | Olive Oil | Olive Oil | 500 ml | 100 ml
+Oils | Extra Virgin Olive Oil | EVOO | 500 ml | 100 ml
+Oils | Canola Oil | Canola Tel | 1 litre | 250 ml
+Oils | Palm Oil | Palm Tel | 1 litre | 250 ml
+Oils | Vanaspati | Dalda Vanaspati | 500 g | 100 g
+Oils | Cooking Spray | Oil Spray | 200 ml | 1 piece
+Sauces | Tomato Ketchup | Tomato Ketchup | 500 g | 100 g
+Sauces | Tomato Puree | Tamatar Puree | 500 g | 100 g
+Sauces | Tomato Paste | Tamatar Paste | 200 g | 50 g
+Sauces | Soy Sauce | Soy Sauce | 200 ml | 50 ml
+Sauces | Dark Soy Sauce | Dark Soy | 200 ml | 50 ml
+Sauces | Green Chilli Sauce | Green Chilli Sauce | 200 g | 50 g
+Sauces | Red Chilli Sauce | Red Chilli Sauce | 200 g | 50 g
+Sauces | Schezwan Sauce | Schezwan Chutney | 200 g | 50 g
+Sauces | Hot Sauce | Hot Sauce | 150 ml | 50 ml
+Sauces | Sriracha | Sriracha | 150 ml | 50 ml
+Sauces | White Vinegar | Safed Sirka | 500 ml | 100 ml
+Sauces | Synthetic Vinegar | Sirka | 500 ml | 100 ml
+Sauces | Apple Cider Vinegar | Seb Ka Sirka | 500 ml | 100 ml
+Sauces | Balsamic Vinegar | Balsamic Sirka | 250 ml | 50 ml
+Sauces | Mayonnaise Veg | Mayonnaise | 250 g | 50 g
+Sauces | Eggless Mayonnaise | Eggless Mayo | 250 g | 50 g
+Sauces | Mustard Sauce | Mustard Sauce | 200 g | 50 g
+Sauces | Pasta Sauce Red | Red Pasta Sauce | 400 g | 100 g
+Sauces | Pasta Sauce White | White Sauce | 400 g | 100 g
+Sauces | Pizza Sauce | Pizza Sauce | 400 g | 100 g
+Sauces | Pesto | Pesto | 200 g | 50 g
+Sauces | Salsa | Salsa | 300 g | 100 g
+Sauces | Hummus | Hummus | 200 g | 50 g
+Sauces | Tahini | Tahini | 200 g | 50 g
+Sauces | Peanut Butter | Moongphali Makhan | 340 g | 50 g
+Sauces | Chocolate Spread | Choco Spread | 350 g | 50 g
+Sauces | Jam Mixed Fruit | Jam | 500 g | 100 g
+Sauces | Honey | Shahad | 500 g | 100 g
+Sauces | Maple Syrup | Maple Syrup | 250 ml | 50 ml
+Sauces | Tamarind Paste | Imli Paste | 200 g | 50 g
+Sauces | Dried Tamarind | Imli | 250 g | 100 g
+Sauces | Kokum Dried | Kokum Dried | 100 g | 25 g
+Sauces | Green Chutney | Hari Chutney | 200 g | 50 g
+Sauces | Sweet Chutney | Meethi Chutney | 200 g | 50 g
+Sauces | Mango Pickle | Aam Ka Achaar | 500 g | 100 g
+Sauces | Lemon Pickle | Nimbu Ka Achaar | 500 g | 100 g
+Sauces | Mixed Pickle | Mixed Achaar | 500 g | 100 g
+Sauces | Chilli Pickle | Mirch Ka Achaar | 500 g | 100 g
+Sauces | Garlic Pickle | Lasan Ka Achaar | 500 g | 100 g
+Sauces | Olives Green | Hare Zaitoon | 200 g | 50 g
+Sauces | Olives Black | Kale Zaitoon | 200 g | 50 g
+Sauces | Jalapeno | Jalapeno | 200 g | 50 g
+Sauces | Gherkins | Gherkin | 200 g | 50 g
+Sauces | Capers | Capers | 100 g | 25 g
+Sauces | Ginger Garlic Paste | Adrak Lasan Paste | 200 g | 50 g
+Sauces | Coconut Paste | Nariyal Paste | 200 g | 50 g
+Sauces | Curry Paste | Curry Paste | 200 g | 50 g
+Sauces | Miso Paste | Miso | 200 g | 50 g
+Dry Goods | Sugar | Cheeni | 1 kg | 100 g
+Dry Goods | Powdered Sugar | Pisi Cheeni | 500 g | 100 g
+Dry Goods | Brown Sugar | Brown Cheeni | 500 g | 100 g
+Dry Goods | Jaggery | Gud | 1 kg | 250 g
+Dry Goods | Jaggery Powder | Gud Powder | 500 g | 100 g
+Dry Goods | Rock Sugar | Mishri | 250 g | 50 g
+Dry Goods | Palm Jaggery | Tadgud Karupatti | 500 g | 100 g
+Dry Goods | Stevia | Stevia | 100 g | 10 g
+Dry Goods | Baking Powder | Baking Powder | 100 g | 25 g
+Dry Goods | Baking Soda | Meetha Soda | 100 g | 25 g
+Dry Goods | Eno Fruit Salt | Eno | 5 sachets | 1 sachet
+Dry Goods | Yeast Dry | Khameer Yeast | 100 g | 25 g
+Dry Goods | Vanilla Essence | Vanilla Essence | 30 ml | 5 ml
+Dry Goods | Rose Water | Gulab Jal | 200 ml | 50 ml
+Dry Goods | Kewra Water | Kewra Jal | 200 ml | 50 ml
+Dry Goods | Food Colour | Khana Rang | 1 piece | 1 piece
+Dry Goods | Cocoa Powder | Cocoa Powder | 200 g | 50 g
+Dry Goods | Dark Chocolate | Dark Chocolate | 100 g | 50 g
+Dry Goods | Milk Chocolate | Milk Chocolate | 100 g | 50 g
+Dry Goods | Choco Chips | Choco Chips | 200 g | 50 g
+Dry Goods | Custard Powder | Custard Powder | 200 g | 50 g
+Dry Goods | Agar Agar | Agar Agar China Grass | 50 g | 10 g
+Dry Goods | Jelly Crystals | Jelly Mix | 100 g | 50 g
+Dry Goods | Corn Syrup | Corn Syrup | 500 g | 100 g
+Dry Goods | Sprinkles | Sprinkles | 100 g | 25 g
+Dry Goods | Gelatin Free Setting Powder | Setting Powder | 50 g | 10 g
+Beverages | Tea Leaves | Chai Patti | 250 g | 50 g
+Beverages | Green Tea | Green Tea | 100 g | 25 g
+Beverages | Masala Tea Mix | Masala Chai Mix | 200 g | 50 g
+Beverages | Coffee Powder | Coffee Powder | 200 g | 50 g
+Beverages | Instant Coffee | Instant Coffee | 100 g | 25 g
+Beverages | Malt Drink Mix | Horlicks Bournvita | 500 g | 100 g
+Beverages | Rose Syrup | Rooh Afza | 750 ml | 100 ml
+Beverages | Lemon Squash | Nimbu Squash | 750 ml | 100 ml
+Beverages | Fruit Juice | Fruit Juice | 1 litre | 250 ml
+Beverages | Coconut Water | Nariyal Paani | 1 litre | 250 ml
+Beverages | Soda Water | Soda | 750 ml | 250 ml
+Beverages | Soft Drink | Cold Drink | 2 litre | 250 ml
+Beverages | Sattu Drink Mix | Sattu Powder | 500 g | 100 g
+Beverages | Thandai Mix | Thandai Mix | 200 g | 50 g
+Beverages | Badam Milk Mix | Badam Mix | 200 g | 50 g
+Beverages | Electral | ORS Drink | 5 sachets | 1 sachet
+Beverages | Drinking Water | Paani | 1 litre | 250 ml
+Snacks | Bhujia Sev | Bhujia | 200 g | 50 g
+Snacks | Namkeen Mix | Namkeen | 200 g | 50 g
+Snacks | Sev Fine | Barik Sev | 200 g | 50 g
+Snacks | Papdi | Papdi | 200 g | 50 g
+Snacks | Puri Pani Puri | Golgappa Puri | 1 packet | 6 pieces
+Snacks | Khakhra | Khakhra | 200 g | 2 pieces
+Snacks | Biscuits | Biscuit | 1 packet | 1 piece
+Snacks | Rusk | Rusk | 1 packet | 2 pieces
+Snacks | Chips | Chips | 1 packet | 1 packet
+Snacks | Popcorn Kernels | Popcorn | 250 g | 50 g
+Snacks | Tortilla Chips | Nachos | 200 g | 50 g
+Snacks | Frozen French Fries | Frozen Fries | 500 g | 250 g
+Snacks | Frozen Veg Nuggets | Veg Nuggets | 400 g | 100 g
+Snacks | Frozen Samosa | Frozen Samosa | 10 pieces | 1 piece
+Snacks | Frozen Tikki | Aloo Tikki | 400 g | 100 g
+Snacks | Frozen Momos Veg | Veg Momos | 10 pieces | 1 piece
+Snacks | Frozen Pizza Base | Frozen Pizza | 1 piece | 1 piece
+Snacks | Soup Mix Tomato | Tomato Soup Mix | 1 pack | 1 pack
+Snacks | Soup Mix Manchow | Manchow Soup Mix | 1 pack | 1 pack
+Snacks | Ready Gulab Jamun Mix | Gulab Jamun Mix | 200 g | 100 g
+Snacks | Ready Halwa Mix | Halwa Mix | 200 g | 100 g
+Snacks | Ready Kheer Mix | Kheer Mix | 200 g | 100 g
+Snacks | Pani Puri Masala | Pani Puri Masala | 100 g | 50 g
+Snacks | Corn Flakes Snack | Cornflakes | 500 g | 100 g
+Snacks | Canned Sweet Corn | Tin Corn | 400 g | 200 g
+Snacks | Canned Tomato | Tin Tamatar | 400 g | 200 g
+Snacks | Canned Mushroom | Tin Khumbh | 400 g | 200 g
+Snacks | Canned Pineapple | Tin Anaas | 400 g | 200 g
+Snacks | Canned Baked Beans | Baked Beans | 400 g | 200 g
+`.trim();
+
+    const CATEGORY_EMOJIS = {
+      "Vegetables": "🥦",
+      "Fruits": "🍎",
+      "Dairy": "🧀",
+      "Eggs": "🥚",
+      "Grains": "🌾",
+      "Pulses": "🫘",
+      "Nuts": "🥜",
+      "Spices": "🌿",
+      "Masalas": "🌶️",
+      "Oils": "🫒",
+      "Sauces": "🥣",
+      "Dry Goods": "🍯",
+      "Beverages": "☕",
+      "Snacks": "🍿"
+    };
+
+    // ITEM SPECIFIC EMOJI MAP
+    const ITEM_EMOJIS = {
+      "Potato": "🥔", "Onion": "🧅", "Tomato": "🍅", "Garlic": "🧄", "Ginger": "🫚",
+      "Green Chilli": "🌶️", "Lemon": "🍋", "Carrot": "🥕", "Corn": "🌽", "Cucumber": "🥒",
+      "Eggplant": "🍆", "Mushroom": "🍄", "Apple": "🍎", "Banana": "🍌", "Mango": "🥭",
+      "Watermelon": "🍉", "Grapes": "🍇", "Strawberry": "🍓", "Avocado": "🥑", "Milk": "🥛",
+      "Curd": "🥣", "Cheese": "🧀", "Butter": "🧈", "Egg": "🥚", "Rice": "🍚", "Bread": "🍞",
+      "Wheat": "🌾", "Noodles": "🍜", "Pasta": "🍝", "Pizza": "🍕", "Oil": "🫒", "Honey": "🍯",
+      "Tea": "🍵", "Coffee": "☕", "Salt": "🧂", "Sugar": "🍬", "Chocolate": "🍫", "Chips": "🥔"
+    };
+
+    function getItemEmoji(name, cat) {
+      for (const [key, icon] of Object.entries(ITEM_EMOJIS)) {
+        if (name.toLowerCase().includes(key.toLowerCase())) return icon;
+      }
+      return CATEGORY_EMOJIS[cat] || "🍲";
+    }
+
+    // Parse RAW data to objects
+    const MASTER_INGREDIENTS = RAW_MASTER_DATA.split("\n")
+      .filter(line => line.trim().length > 0 && line.includes("|"))
+      .map((line, idx) => {
+        const parts = line.split("|").map(p => p.trim());
+        const cat = parts[0];
+        const eng = parts[1];
+        const hin = parts[2];
+        const pack = parts[3];
+        const stepRaw = parts[4] || "100 g";
+        
+        // Parse step number & unit
+        const stepMatch = stepRaw.match(/^(\d+)\s*(.*)$/);
+        const stepVal = stepMatch ? parseInt(stepMatch[1], 10) : 50;
+        const unitVal = stepMatch && stepMatch[2] ? stepMatch[2].trim() : "g";
+
+        return {
+          id: idx + 1,
+          category: cat,
+          name: eng,
+          hindi: hin,
+          pack: pack,
+          step: stepVal,
+          unit: unitVal,
+          emoji: getItemEmoji(eng, cat),
+          aliases: [eng.toLowerCase(), hin.toLowerCase()]
+        };
+      });
+
+    // STATE
+    let selectedIngredients = {};
+    let currentCategory = "ALL";
+    let searchQuery = "";
+    let pantryStaples = ["Salt", "Drinking Water", "Refined Cooking Oil", "Turmeric Powder", "Red Chilli Powder", "Cumin Seeds"];
+    let measurementUnit = "metric";
+    let dietaryPreference = "vegetarian";
+    let currentGeneratedRecipe = "";
+    let isGenerating = false;
+
+    // INIT
+    document.addEventListener("DOMContentLoaded", () => {
+      loadSettings();
+      renderCategoryTabs();
+      renderIngredients();
+      updateSelectedCount();
+    });
+
+    function loadSettings() {
+      const storedKey = localStorage.getItem("pammy_gemini_key");
+      const apiKeyInput = document.getElementById("apiKeyInput");
+      if (storedKey && apiKeyInput) apiKeyInput.value = storedKey;
+
+      const storedStaples = localStorage.getItem("pammy_staples");
+      if (storedStaples) pantryStaples = JSON.parse(storedStaples);
+
+      const storedUnit = localStorage.getItem("pammy_unit");
+      if (storedUnit) setMeasurementUnit(storedUnit, false);
+
+      const storedDiet = localStorage.getItem("pammy_diet");
+      if (storedDiet) {
+        dietaryPreference = storedDiet;
+        const dietSelect = document.getElementById("dietaryFilterSelect");
+        if (dietSelect) dietSelect.value = storedDiet;
+      }
+
+      renderStaples();
+    }
+
+    function toggleSettingsModal(show) {
+      const modal = document.getElementById("settingsModal");
+      if (modal) modal.classList.toggle("hidden", !show);
+    }
+
+    function saveSettings() {
+      const apiKeyInput = document.getElementById("apiKeyInput");
+      const key = apiKeyInput ? apiKeyInput.value.trim() : "";
+      const dietSelect = document.getElementById("dietaryFilterSelect");
+      if (dietSelect) dietaryPreference = dietSelect.value;
+
+      localStorage.setItem("pammy_gemini_key", key);
+      localStorage.setItem("pammy_staples", JSON.stringify(pantryStaples));
+      localStorage.setItem("pammy_unit", measurementUnit);
+      localStorage.setItem("pammy_diet", dietaryPreference);
+      toggleSettingsModal(false);
+      alert("Settings and Gemini API Key saved!");
+    }
+
+    function setMeasurementUnit(unit, save = true) {
+      measurementUnit = unit;
+      const unitMetric = document.getElementById("unitMetric");
+      const unitCups = document.getElementById("unitCups");
+      
+      if (unitMetric) {
+        unitMetric.className = unit === 'metric' 
+          ? "py-2.5 text-xs font-bold rounded-xl border border-orange-500 bg-orange-50 text-orange-700 transition-all"
+          : "py-2.5 text-xs font-medium rounded-xl border border-gray-200 bg-white text-gray-600 transition-all";
+      }
+      if (unitCups) {
+        unitCups.className = unit === 'cups' 
+          ? "py-2.5 text-xs font-bold rounded-xl border border-orange-500 bg-orange-50 text-orange-700 transition-all"
+          : "py-2.5 text-xs font-medium rounded-xl border border-gray-200 bg-white text-gray-600 transition-all";
+      }
+      if (save) localStorage.setItem("pammy_unit", measurementUnit);
+    }
+
+    function renderStaples() {
+      const container = document.getElementById("staplesList");
+      if (!container) return;
+      container.innerHTML = pantryStaples.map((staple, index) => `
+        <span class="inline-flex items-center space-x-1.5 bg-orange-50/80 text-orange-900 text-[11px] px-2.5 py-1 rounded-full border border-orange-200/80">
+          <span>${staple}</span>
+          <button onclick="removeStaple(${index})" class="text-orange-400 hover:text-orange-700 font-bold">✕</button>
+        </span>
+      `).join("");
+    }
+
+    function addStaple() {
+      const input = document.getElementById("newStapleInput");
+      if (!input) return;
+      const value = input.value.trim();
+      if (value && !pantryStaples.includes(value)) {
+        pantryStaples.push(value);
+        input.value = "";
+        renderStaples();
+      }
+    }
+
+    function removeStaple(index) {
+      pantryStaples.splice(index, 1);
+      renderStaples();
+    }
+
+    function renderCategoryTabs() {
+      const categories = ["ALL", ...new Set(MASTER_INGREDIENTS.map(i => i.category))];
+      const tabsContainer = document.getElementById("categoryTabs");
+      if (!tabsContainer) return;
+      tabsContainer.innerHTML = categories.map(cat => {
+        const isSelected = currentCategory === cat;
+        const icon = CATEGORY_EMOJIS[cat] || (cat === "ALL" ? "✨" : "🍽️");
+        return `
+          <button onclick="selectCategory('${cat}')" class="shrink-0 flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-2xs ${
+            isSelected 
+              ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20' 
+              : 'bg-white text-gray-600 border border-gray-200/70 hover:bg-orange-50'
+          }">
+            <span>${icon}</span>
+            <span>${cat}</span>
+          </button>
+        `;
+      }).join("");
+    }
+
+    function selectCategory(cat) {
+      currentCategory = cat;
+      renderCategoryTabs();
+      renderIngredients();
+    }
+
+    function handleSearch() {
+      const input = document.getElementById("searchInput");
+      const clearBtn = document.getElementById("clearSearchBtn");
+      searchQuery = input ? input.value.toLowerCase().trim() : "";
+      if (clearBtn) clearBtn.classList.toggle("hidden", searchQuery.length === 0);
+      renderIngredients();
+    }
+
+    function clearSearch() {
+      const input = document.getElementById("searchInput");
+      if (input) input.value = "";
+      handleSearch();
+    }
+
+    function applyQuickFilter(itemNames) {
+      itemNames.forEach(name => {
+        const found = MASTER_INGREDIENTS.find(i => i.name.toLowerCase().includes(name.toLowerCase()));
+        if (found) {
+          selectedIngredients[found.name] = (selectedIngredients[found.name] || 0) + found.step;
+        }
+      });
+      renderIngredients();
+      updateSelectedCount();
+    }
+
+    function clearAllSelections() {
+      if (Object.keys(selectedIngredients).length === 0) return;
+      if (confirm("Reset all chosen kitchen ingredients?")) {
+        selectedIngredients = {};
+        renderIngredients();
+        updateSelectedCount();
+      }
+    }
+
+    function renderIngredients() {
+      const grid = document.getElementById("ingredientsGrid");
+      const label = document.getElementById("filteredResultsLabel");
+      if (!grid) return;
+
+      const filtered = MASTER_INGREDIENTS.filter(item => {
+        const matchesCategory = currentCategory === "ALL" || item.category === currentCategory;
+        const matchesSearch = !searchQuery || 
+                              item.name.toLowerCase().includes(searchQuery) || 
+                              item.hindi.toLowerCase().includes(searchQuery) ||
+                              item.aliases.some(a => a.includes(searchQuery));
+        return matchesCategory && matchesSearch;
+      });
+
+      if (label) {
+        label.innerText = `Showing ${filtered.length} of ${MASTER_INGREDIENTS.length} items${currentCategory !== 'ALL' ? `in ${currentCategory}` : ''}`;
+      }
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full py-12 text-center text-gray-400 space-y-2">
+            <span class="text-4xl">🔍</span>
+            <p class="text-sm font-medium">No ingredients found for "${searchQuery}"</p>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(item => {
+        const qty = selectedIngredients[item.name] || 0;
+        const inKitchen = qty > 0;
+
+        return `
+          <div class="bg-white rounded-2xl p-3.5 border transition-all duration-200 flex flex-col justify-between shadow-2xs hover:shadow-md ${
+            inKitchen 
+              ? 'border-emerald-500/70 bg-gradient-to-b from-emerald-50/40 to-white ring-1 ring-emerald-500/30' 
+              : 'border-orange-100/80 hover:border-orange-200'
+          }">
+            <div class="flex justify-between items-start gap-1 mb-2">
+              <div class="w-10 h-10 rounded-xl bg-orange-50/80 border border-orange-100 flex items-center justify-center text-2xl shadow-2xs">
+                ${item.emoji}
+              </div>
+              <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                inKitchen ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-500'
+              }">
+                ${inKitchen ? `${qty} ${item.unit}` : 'Not in kitchen'}
+              </span>
+            </div>
+
+            <div class="mb-3">
+              <h3 class="font-bold text-gray-900 text-sm leading-tight line-clamp-1">${item.hindi}</h3>
+              <p class="text-xs text-gray-600 font-medium">${item.name}</p>
+              <p class="text-[10px] text-gray-400 mt-1">Pack: ${item.pack}</p>
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between bg-gray-50/80 rounded-xl p-1 border border-gray-100">
+                <button onclick="updateQty('${item.name}', -${item.step})" class="w-8 h-8 rounded-lg bg-white hover:bg-gray-100 border border-gray-200 active:scale-90 flex items-center justify-center font-extrabold text-gray-700 text-base shadow-2xs transition-all">-</button>
+                <span class="text-xs font-bold ${inKitchen ? 'text-emerald-700' : 'text-gray-400'}">${qty} <span class="text-[10px] font-normal">${item.unit}</span></span>
+                <button onclick="updateQty('${item.name}',${item.step})" class="w-8 h-8 rounded-lg bg-orange-500 hover:bg-orange-600 text-white active:scale-90 flex items-center justify-center font-extrabold text-base shadow-2xs transition-all">+</button>
+              </div>
+              <div class="text-[9px] text-center text-gray-400 mt-1">Step: ±${item.step}${item.unit}</div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function updateQty(name, delta) {
+      const item = MASTER_INGREDIENTS.find(i => i.name === name);
+      if (!item) return;
+
+      const currentQty = selectedIngredients[name] || 0;
+      const newQty = Math.max(0, currentQty + delta);
+
+      if (newQty === 0) {
+        delete selectedIngredients[name];
+      } else {
+        selectedIngredients[name] = newQty;
+      }
+
+      renderIngredients();
+      updateSelectedCount();
+    }
+
+    function updateSelectedCount() {
+      const count = Object.keys(selectedIngredients).length;
+      const countEl = document.getElementById("selectedCount");
+      if (countEl) countEl.innerText = count;
+    }
+
+    // CALL GOOGLE GEMINI API
+    async function askChefPammy() {
+      if (isGenerating) return;
+
+      const key = localStorage.getItem("pammy_gemini_key");
+      if (!key) {
+        alert("Please configure your Google Gemini API key under Settings first!");
+        toggleSettingsModal(true);
+        return;
+      }
+
+      const availableItems = Object.entries(selectedIngredients).map(([name, qty]) => {
+        const item = MASTER_INGREDIENTS.find(i => i.name === name);
+        return `${item.hindi} (${name}): ${qty}${item.unit}`;
+      });
+
+      if (availableItems.length === 0) {
+        alert("Please add at least 1 ingredient present in your kitchen!");
+        return;
+      }
+
+      const modal = document.getElementById("recipeResultModal");
+      const output = document.getElementById("recipeOutput");
+      const askBtn = document.getElementById("askChefBtn");
+
+      if (modal) modal.classList.remove("hidden");
+      if (output) {
+        output.innerHTML = `
+          <div class="p-10 text-center space-y-3">
+            <div class="inline-block animate-spin text-4xl">🍳</div>
+            <p class="font-bold text-gray-800 text-base">Chef Pammy is checking your kitchen ingredients...</p>
+            <p class="text-xs text-gray-500">Creating authentic recipes matched to your measurement units and staples.</p>
+          </div>
+        `;
+      }
+
+      const promptText = `
+You are Chef Pammy, a warm and master Indian culinary expert.
+Here are the ingredients currently available in my kitchen:
+${availableItems.join(", ")}
+
+Default Pantry Staples assumed already available in kitchen:
+${pantryStaples.join(", ")}
+
+Preferences:
+- Dietary rule: ${dietaryPreference}
+- Measurement Units: ${measurementUnit}
+
+Please suggest 2 to 3 creative, practical, and authentic dishes that can be made using primarily what is available.
+Format clearly using clean Markdown with:
+## Recipe Name
+**Time:** prep & cook time
+**Kitchen Ingredients Used:** bullet points with quantities
+**Pantry Staples Used:**
+**Step-by-step Cooking Method:** numbered steps
+**Chef Pammy's Secret Tip:** 1 practical tip
+`;
+
+      try {
+        isGenerating = true;
+        askBtn.disabled = true;
+        askBtn.classList.add("opacity-50", "cursor-not-allowed");
+
+        // Use official Gemini REST API v1beta
+        const modelEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`;
+        
+        const response = await fetch(modelEndpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: promptText }] }],
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 2048
+            }
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+          throw new Error(data.error.message || "Failed to communicate with Gemini API");
+        }
+
+        const candidate = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!candidate) throw new Error("No response generated by the model.");
+
+        currentGeneratedRecipe = candidate;
+
+        if (output) {
+          output.innerHTML = `
+            <div class="prose max-w-none text-gray-800 space-y-3 text-xs sm:text-sm">
+              ${formatMarkdown(currentGeneratedRecipe)}
+            </div>
+            <div class="pt-4 border-t flex justify-end">
+              <button onclick="saveCurrentRecipe()" class="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow-md transition-all">
+                💾 Save to CookBook
+              </button>
+            </div>
+          `;
+        }
+      } catch (err) {
+        if (output) {
+          output.innerHTML = `
+            <div class="p-6 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs space-y-2">
+              <p class="font-bold text-sm">Error generating recipes:</p>
+              <p>${err.message}</p>
+              <p class="text-gray-500 pt-
